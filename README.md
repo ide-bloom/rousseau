@@ -235,11 +235,6 @@ MCP-only proxies are lighter, cross-platform and often cover more MCP transports
 - MCP policy rules (argument allow-lists per tool) in the rule engine.
 - Optional export to OpenTelemetry / SIEM formats.
 
-## Sister projects
+## Security, license
 
-- [Epicurus](https://github.com/ide-bloom/epicurus)
-- [Hush](https://github.com/ide-bloom/hush)
-
-## Contributing, security, license
-
-Contributions are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md). Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md). Licensed under the [Apache License 2.0](LICENSE).
+Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md). Licensed under the [Apache License 2.0](LICENSE).
