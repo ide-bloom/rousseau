@@ -1,0 +1,5 @@
+{
+  "mcpServers": {
+    "local": { "command": "python", "args": ["-m", "project_mcp"] }
+  }
+}

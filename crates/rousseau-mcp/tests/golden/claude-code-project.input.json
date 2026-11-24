@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "shared-tools": {
+      "command": "node",
+      "args": ["./tools/mcp-server.js"],
+      "env": { "LOG_LEVEL": "info" }
+    }
+  }
+}

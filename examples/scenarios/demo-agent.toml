@@ -1,0 +1,10 @@
+# Agent signature for the scripted demo agent. Pass it to the sensor with
+#   rousseau run --agents examples\scenarios\demo-agent.toml
+# or add the path to `agent_files` in rousseau.toml.
+[[agent]]
+id = "demo-agent"
+name = "Rousseau demo agent"
+transcript = ""
+[[agent.match]]
+exe = ["python.exe", "python3.exe", "py.exe"]
+cmdline = ["*rousseau-demo-agent*"]

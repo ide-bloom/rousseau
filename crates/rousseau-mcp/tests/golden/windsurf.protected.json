@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "brave-search": {
+      "command": "C:\\Program Files\\Rousseau\\rousseau.exe",
+      "args": ["wrap", "--name", "brave-search", "--", "npx", "-y", "@modelcontextprotocol/server-brave-search"],
+      "env": { "BRAVE_API_KEY": "<set me>" }
+    },
+    "hosted": { "serverUrl": "https://mcp.example.com/sse" }
+  }
+}

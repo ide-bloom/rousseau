@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "C:\\Program Files\\Rousseau\\rousseau.exe",
+      "args": ["wrap", "--name", "filesystem", "--", "npx", "-y", "@modelcontextprotocol/server-filesystem", "C:\\Users\\dev\\Desktop"]
+    },
+    "github": {
+      "command": "C:\\Program Files\\Rousseau\\rousseau.exe",
+      "args": ["wrap", "--name", "github", "--", "docker", "run", "-i", "--rm", "-e", "GITHUB_PERSONAL_ACCESS_TOKEN", "ghcr.io/github/github-mcp-server"],
+      "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "<set me>" }
+    }
+  },
+  "globalShortcut": "Ctrl+Space"
+}

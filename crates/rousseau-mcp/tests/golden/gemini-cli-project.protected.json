@@ -1,0 +1,5 @@
+{
+  "mcpServers": {
+    "repoTools": { "command": "C:\\Program Files\\Rousseau\\rousseau.exe", "args": ["wrap", "--name", "repoTools", "--", "node", "scripts/mcp.js"] }
+  }
+}

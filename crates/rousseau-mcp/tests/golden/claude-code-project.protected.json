@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "shared-tools": {
+      "command": "C:\\Program Files\\Rousseau\\rousseau.exe",
+      "args": ["wrap", "--name", "shared-tools", "--", "node", "./tools/mcp-server.js"],
+      "env": { "LOG_LEVEL": "info" }
+    }
+  }
+}

@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:">
+<title>Rousseau incident report – {{ session.get('id', manifest.producer) }}</title>
+<style>
+:root { --bg:#fff; --fg:#17202e; --muted:#5b6b82; --line:#dde3ec; --panel:#f6f8fb; --crit:#b91c1c; --high:#c2410c; --med:#a16207; --low:#1d4ed8; --info:#475569; --ok:#15803d; --acc:#0369a1; }
+@media (prefers-color-scheme: dark) { :root { --bg:#0b1017; --fg:#dbe4f0; --muted:#8394ab; --line:#253247; --panel:#151e2c; --crit:#f87171; --high:#fb923c; --med:#facc15; --low:#60a5fa; --info:#94a3b8; --ok:#4ade80; --acc:#38bdf8; } }
+* { box-sizing: border-box; } body { margin: 0; padding: 24px 32px 60px; background: var(--bg); color: var(--fg); font: 14px/1.5 "Segoe UI", system-ui, sans-serif; max-width: 1280px; }
+h1 { font-size: 22px; margin: 0 0 4px; } h2 { font-size: 17px; margin: 28px 0 10px; border-bottom: 1px solid var(--line); padding-bottom: 4px; } h3 { font-size: 14px; margin: 14px 0 6px; }
+.muted { color: var(--muted); } .mono, pre, td.mono { font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; } .card .k { color: var(--muted); font-size: 11px; text-transform: uppercase; } .card .v { font-size: 20px; font-weight: 600; }
+table { width: 100%; border-collapse: collapse; } th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line); vertical-align: top; } th { color: var(--muted); font-size: 11px; text-transform: uppercase; }
+td { word-break: break-word; }
+.sev { font-weight: 700; text-transform: uppercase; font-size: 11px; border: 1px solid currentColor; border-radius: 4px; padding: 0 5px; }
+.sev-critical { color: var(--crit); } .sev-high { color: var(--high); } .sev-medium { color: var(--med); } .sev-low { color: var(--low); } .sev-info { color: var(--info); }
+.incident { border: 1px solid var(--line); border-left: 4px solid var(--acc); border-radius: 6px; padding: 10px 14px; margin: 10px 0; background: var(--panel); }
+pre { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 8px; white-space: pre-wrap; word-break: break-all; }
+.decoded { border-color: var(--crit); } .add { color: var(--ok); } .del { color: var(--crit); }
+ul.tree, ul.tree ul { list-style: none; padding-left: 18px; margin: 0; } ul.tree { padding-left: 0; } ul.tree ul { border-left: 1px dashed var(--line); }
+.node { cursor: default; } .node.intent { font-weight: 600; } .node.process::before { content: "⚙ "; color: var(--muted); } li.collapsed > ul { display: none; } .tog { cursor: pointer; color: var(--muted); display: inline-block; width: 14px; }
+.attr-mcp { color: var(--acc); } .attr-transcript { color: var(--ok); } .attr-unexplained { color: var(--med); }
+input#filter { padding: 5px 8px; width: 320px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+footer { margin-top: 40px; color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<h1>Rousseau incident report</h1>
+<div class="muted">Session <span class="mono">{{ session.get('id', '(none)') }}</span> · agent {{ session.get('agent', '–') }} · {{ manifest.first_ts | ts }} → {{ manifest.last_ts | ts }} · produced by {{ manifest.producer or 'rousseau' }} {{ manifest.rousseau_version }}</div>
+
+<h2>Summary</h2>
+<div class="grid">
+  <div class="card"><div class="k">Highest severity</div><div class="v">{% if max_severity %}<span class="sev sev-{{ max_severity }}">{{ max_severity }}</span>{% else %}none{% endif %}</div></div>
+  <div class="card"><div class="k">Incidents</div><div class="v">{{ incidents | length }}</div></div>
+  <div class="card"><div class="k">Events</div><div class="v">{{ events | length }}</div></div>
+  <div class="card"><div class="k">MCP servers</div><div class="v">{{ servers | length }}</div></div>
+  <div class="card"><div class="k">Inspector findings</div><div class="v">{{ findings | length }}</div></div>
+  <div class="card"><div class="k">Unexplained events</div><div class="v">{{ attribution.get('unexplained', 0) }}</div></div>
+</div>
+{% if session %}
+<table class="mono" style="margin-top:10px">
+  <tr><th>Root process</th><td>{{ session.get('image', '') }} (pid {{ session.get('root_pid', '?') }})</td></tr>
+  <tr><th>Command line</th><td>{{ session.get('command_line', '') }}</td></tr>
+  <tr><th>Working directory</th><td>{{ session.get('cwd', '') }}</td></tr>
+  <tr><th>Project</th><td>{{ session.get('project', '') }}</td></tr>
+</table>
+{% endif %}
+
+<h2>Incidents</h2>
+{% for item in incidents %}{% set i = item.incident %}
+<div class="incident">
+  <div><span class="sev sev-{{ i.severity }}">{{ i.severity }}</span> <strong>{{ i.rule_id }}: {{ i.title }}</strong> <span class="muted">×{{ i.count }} · mode {{ i.mode }} · {{ i.status }}{% if i.actions %} · {{ i.actions | join(', ') }}{% endif %}</span></div>
+  <p>{{ i.explanation }}</p>
+  <div class="muted">OWASP Agentic: {{ i.owasp | join(', ') or '–' }} · MITRE ATT&amp;CK: {{ i.mitre | join(', ') or '–' }} · {{ i.first_ts | ts }}</div>
+  <h3>Evidence</h3>
+  <table>{% for e in item.evidence %}<tr><td class="mono">{{ e.ts | ts }}</td><td class="mono">{{ e.kind }}</td><td class="mono">{{ summarize(e) }}</td></tr>{% endfor %}</table>
+</div>
+{% else %}<p class="muted">No incidents were raised for this session.</p>{% endfor %}
+
+<h2>Causal tree: intent → action → effects</h2>
+<p class="muted">Top-level nodes are tool calls (MCP or built-in tools from agent transcripts). Processes they spawned and the file, network and registry effects sit underneath. Click ▸ to expand.</p>
+{% macro node(n, depth) %}
+<li class="{{ 'collapsed' if depth >= 2 and n.children else '' }}">
+  <span class="tog">{% if n.children %}{{ '▸' if depth >= 2 else '▾' }}{% endif %}</span>
+  <span class="node {{ n.kind }} mono">{% if n.severity %}<span class="sev sev-{{ n.severity }}">{{ n.severity }}</span> {% endif %}{% if n.kind == 'intent' %}<span class="attr-{{ n.detail }}">[{{ n.detail }}]</span> {% endif %}{{ n.label }}</span>
+  {% if n.children %}<ul>{% for c in n.children %}{{ node(c, depth + 1) }}{% endfor %}</ul>{% endif %}
+</li>
+{% endmacro %}
+<ul class="tree">{% for n in tree %}{{ node(n, 0) }}{% endfor %}</ul>
+
+<h2>MCP findings and drift</h2>
+{% for e in findings %}{% set f = e.finding %}
+<div class="incident"><span class="sev sev-{{ f.severity }}">{{ f.severity }}</span> <strong>{{ f.title }}</strong> <span class="muted mono">{{ f.code }} · {{ f.server }} · {{ f.location }}</span>
+<p>{{ f.detail }}</p>{% if f.decoded %}<div class="muted">Decoded hidden content:</div><pre class="decoded">{{ f.decoded }}</pre>{% endif %}</div>
+{% endfor %}
+{% for e in drift %}{% set d = e.drift %}
+<div class="incident"><strong>Tool {{ d.tool }} on {{ d.server }}: {{ d.change }}</strong> <span class="muted">{{ e.ts | ts }}</span>
+<pre>{% for line in (d.diff or '').splitlines() %}<span class="{{ 'add' if line.startswith('+ ') else ('del' if line.startswith('- ') else '') }}">{{ line }}</span>
+{% endfor %}</pre></div>
+{% endfor %}
+{% if not findings and not drift %}<p class="muted">None.</p>{% endif %}
+
+<h2>Timeline</h2>
+<p><input id="filter" placeholder="Filter timeline…" aria-label="Filter timeline"></p>
+<table id="timeline">
+<thead><tr><th>Time</th><th>Sev</th><th>Kind</th><th>Attribution</th><th>Summary</th></tr></thead>
+<tbody>{% for e in events %}{% set a = e.attribution or {} %}
+<tr><td class="mono">{{ e.ts | ts }}</td><td>{% if e.severity %}<span class="sev sev-{{ e.severity }}">{{ e.severity }}</span>{% endif %}</td><td class="mono">{{ e.kind }}</td><td class="mono attr-{{ a.get('kind', '') }}">{{ a.get('tool') or a.get('kind', '') }}</td><td class="mono">{{ summarize(e) }}</td></tr>{% endfor %}
+</tbody></table>
+
+<h2>Event kinds</h2>
+<table>{% for k, n in kinds %}<tr><td class="mono">{{ k }}</td><td>{{ n }}</td></tr>{% endfor %}</table>
+
+<footer>Generated {{ generated }} by rousseau-lab {{ version }}. Self-contained: no network access is needed to view this file.</footer>
+<script>
+document.querySelectorAll("ul.tree .tog").forEach(function (t) {
+  t.addEventListener("click", function () { var li = t.parentElement; if (!li.querySelector("ul")) return; li.classList.toggle("collapsed"); t.textContent = li.classList.contains("collapsed") ? "▸" : "▾"; });
+});
+document.getElementById("filter").addEventListener("input", function (ev) {
+  var q = ev.target.value.toLowerCase();
+  document.querySelectorAll("#timeline tbody tr").forEach(function (r) { r.style.display = r.textContent.toLowerCase().indexOf(q) >= 0 ? "" : "none"; });
+});
+</script>
+</body>
+</html>

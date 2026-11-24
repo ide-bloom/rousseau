@@ -1,0 +1,89 @@
+# MCP client configuration locations (Windows).
+#
+# `paths` may use `~` (the user profile), `%APPDATA%`, `%LOCALAPPDATA%`,
+# `$CODEX_HOME` (defaults to ~/.codex) and `<project>` (each project
+# directory passed to `rousseau protect --project`, default: the current
+# directory).
+#
+# `servers` lists dotted paths to the object that maps server names to
+# server entries; `*` matches any single key (used for Claude Code's
+# per-project "local" scope inside ~/.claude.json).
+#
+# Locations verified against each client's documentation (November 2026).
+
+[[client]]
+id = "claude-desktop"
+name = "Claude Desktop"
+format = "json"
+paths = ["%APPDATA%/Claude/claude_desktop_config.json"]
+servers = ["mcpServers"]
+
+[[client]]
+id = "claude-code-user"
+name = "Claude Code (user and local scopes)"
+format = "json"
+paths = ["~/.claude.json"]
+servers = ["mcpServers", "projects.*.mcpServers"]
+
+[[client]]
+id = "claude-code-project"
+name = "Claude Code (project scope)"
+format = "json"
+paths = ["<project>/.mcp.json"]
+servers = ["mcpServers"]
+
+[[client]]
+id = "cursor"
+name = "Cursor (global)"
+format = "json"
+paths = ["~/.cursor/mcp.json"]
+servers = ["mcpServers"]
+
+[[client]]
+id = "cursor-project"
+name = "Cursor (project)"
+format = "json"
+paths = ["<project>/.cursor/mcp.json"]
+servers = ["mcpServers"]
+
+[[client]]
+id = "vscode"
+name = "VS Code (user)"
+format = "json"
+paths = ["%APPDATA%/Code/User/mcp.json", "%APPDATA%/Code - Insiders/User/mcp.json"]
+servers = ["servers"]
+
+[[client]]
+id = "vscode-workspace"
+name = "VS Code (workspace)"
+format = "json"
+paths = ["<project>/.vscode/mcp.json"]
+servers = ["servers"]
+
+[[client]]
+id = "windsurf"
+name = "Windsurf"
+format = "json"
+paths = ["~/.codeium/windsurf/mcp_config.json"]
+servers = ["mcpServers"]
+
+[[client]]
+id = "codex"
+name = "OpenAI Codex (CLI and app)"
+format = "toml"
+paths = ["$CODEX_HOME/config.toml"]
+servers = ["mcp_servers"]
+
+[[client]]
+id = "gemini-cli"
+name = "Gemini CLI (user)"
+format = "json"
+paths = ["~/.gemini/settings.json"]
+servers = ["mcpServers"]
+
+[[client]]
+id = "gemini-cli-project"
+name = "Gemini CLI (project)"
+format = "json"
+paths = ["<project>/.gemini/settings.json"]
+servers = ["mcpServers"]

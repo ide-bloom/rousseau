@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+
+jobs:
+  rust:
+    name: Rust (fmt, clippy, tests, deny, release builds)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
+        with:
+          components: rustfmt, clippy
+          targets: x86_64-pc-windows-msvc, aarch64-pc-windows-msvc
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - name: Format
+        run: cargo fmt --all -- --check
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Clippy (ml feature)
+        run: cargo clippy -p rousseau-cli --features ml -- -D warnings
+      - name: Tests
+        run: cargo test --workspace
+      - name: Integration tests (elevated runner, real ETW sessions)
+        run: |
+          python -m pip install --upgrade pip
+          cargo test -p rousseau-etw --features integration -- --nocapture
+          cargo test -p rousseau-cli --features integration -- --nocapture --test-threads 1
+      - name: Release build (x64)
+        run: cargo build --release --target x86_64-pc-windows-msvc
+      - name: Release build (arm64)
+        run: cargo build --release --target aarch64-pc-windows-msvc
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: rousseau-ci
+          path: |
+            target/x86_64-pc-windows-msvc/release/rousseau.exe
+            target/aarch64-pc-windows-msvc/release/rousseau.exe
+          retention-days: 7
+
+  deny:
+    name: cargo-deny
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: EmbarkStudios/cargo-deny-action@17aeb3c839e42274e2b8adf721c8c65edfdc74dd # v2.1.3
+        with:
+          command: check advisories licenses bans sources
+
+  python:
+    name: Python ${{ matrix.python }} (ruff, mypy, pytest, build)
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install
+        run: python -m pip install -e "lab[dev]" build
+      - name: Ruff
+        run: |
+          ruff check .
+          ruff format --check .
+      - name: Mypy (strict)
+        working-directory: lab
+        run: mypy
+      - name: Pytest
+        working-directory: lab
+        run: pytest
+      - name: Build sdist and wheel
+        run: python -m build lab
+
+  conformance:
+    name: Rule-engine conformance (Rust and Python)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Rust engine
+        run: cargo test -p rousseau-core --test conformance
+      - name: Python engine
+        run: |
+          python -m pip install -e "lab[dev]"
+          cd lab
+          pytest tests/test_conformance.py

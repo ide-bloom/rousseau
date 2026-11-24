@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "git": {
+      "command": "C:\\Program Files\\Rousseau\\rousseau.exe",
+      "args": ["wrap", "--name", "git", "--", "uvx", "mcp-server-git", "--repository", "C:\\dev\\app"]
+    },
+    "remote-docs": {
+      "url": "https://docs.example.com/mcp"
+    }
+  }
+}

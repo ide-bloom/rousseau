@@ -1,0 +1,104 @@
+# Agents modifying their own guardrails or other agents' configuration.
+id: ROU-013
+title: Agent edits its own permission or approval settings
+severity: critical
+description: >
+  An agent tree wrote to the agent's own permission configuration (for
+  example Claude Code settings.json, Codex config.toml) or launched an agent
+  with an approval-bypass flag. A prompt-injected agent that turns on
+  auto-approve has removed the human from the loop: self-escalation.
+references:
+  - https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications/
+  - https://attack.mitre.org/techniques/T1548/
+owasp: [ASI03, ASI10]
+mitre: [T1548, T1562]
+falsepositives:
+  - The user editing settings through the agent's own /permissions UI writes the same files; correlate with the attributed tool call.
+detection:
+  type: event
+  where:
+    all:
+      - descendant_of_agent: true
+      - any:
+          - all:
+              - field: kind
+                in: [file.write, file.create, file.rename]
+              - any:
+                  - all:
+                      - field: lineage.agent
+                        equals: claude-code
+                      - field: file.path
+                        glob: ["*/.claude/settings.json", "*/.claude/settings.local.json", "*/ClaudeCode/managed-settings.json"]
+                  - all:
+                      - field: lineage.agent
+                        in: [codex-cli, codex-app]
+                      - field: file.path
+                        glob: ["*/.codex/config.toml"]
+                  - all:
+                      - field: lineage.agent
+                        equals: gemini-cli
+                      - field: file.path
+                        glob: ["*/.gemini/settings.json"]
+                  - all:
+                      - field: lineage.agent
+                        in: [cursor, windsurf, vscode-copilot]
+                      - field: file.path
+                        glob: ["*/User/settings.json"]
+          - all:
+              - field: kind
+                equals: process.start
+              - field: lineage.depth
+                gte: 1
+              - field: process.command_line
+                regex: '(--dangerously-skip-permissions|--permission-mode\s+bypassPermissions|--dangerously-bypass-approvals-and-sandbox|--yolo\b|--full-auto|--approval-mode\s+yolo|chat\.tools\.autoApprove|--allow-dangerously-skip-permissions)'
+---
+id: ROU-014
+title: Agent edits another agent's or an MCP client's configuration
+severity: high
+description: >
+  An agent tree modified an MCP client configuration or another agent's
+  settings. Adding an MCP server to another client's config is a way to
+  persist and spread across agents.
+references:
+  - https://attack.mitre.org/techniques/T1546/
+owasp: [ASI04, ASI07]
+mitre: [T1546, T1562]
+falsepositives:
+  - Asking an agent to set up an MCP server for you; `rousseau protect` itself is excluded.
+detection:
+  type: event
+  where:
+    all:
+      - descendant_of_agent: true
+      - field: kind
+        in: [file.write, file.create, file.rename]
+      - not:
+          field: process.name
+          equals: rousseau.exe
+      - any:
+          - field: file.path
+            glob:
+              - "*/Claude/claude_desktop_config.json"
+              - "*/.cursor/mcp.json"
+              - "*/.vscode/mcp.json"
+              - "*/Code/User/mcp.json"
+              - "*/.codeium/windsurf/mcp_config.json"
+              - "*/.mcp.json"
+          - all:
+              - not:
+                  field: lineage.agent
+                  equals: claude-code
+              - field: file.path
+                glob: ["*/.claude.json", "*/.claude/settings.json"]
+          - all:
+              - not:
+                  field: lineage.agent
+                  in: [codex-cli, codex-app]
+              - field: file.path
+                glob: ["*/.codex/config.toml"]
+          - all:
+              - not:
+                  field: lineage.agent
+                  equals: gemini-cli
+              - field: file.path
+                glob: ["*/.gemini/settings.json"]

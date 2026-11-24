@@ -1,0 +1,166 @@
+# Exfiltration and command-and-control from agent trees.
+id: ROU-007
+title: Upload to paste site, webhook relay or tunnel
+severity: high
+description: >
+  An agent tree launched curl, PowerShell web cmdlets, bitsadmin or certutil
+  with a destination on a paste site, webhook relay, tunneling service or
+  Discord webhook, combined with upload-style arguments. These services are
+  favoured for exfiltration because they need no attacker infrastructure.
+references:
+  - https://attack.mitre.org/techniques/T1567/
+  - https://attack.mitre.org/techniques/T1102/
+owasp: [ASI02]
+mitre: [T1567, T1102]
+falsepositives:
+  - A developer deliberately testing a webhook integration through the agent.
+detection:
+  type: event
+  where:
+    all:
+      - descendant_of_agent: true
+      - field: kind
+        equals: process.start
+      - field: process.name
+        in: [curl.exe, wget.exe, powershell.exe, pwsh.exe, bitsadmin.exe, certutil.exe, cmd.exe, bash.exe, sh.exe]
+      - field: process.command_line
+        regex: '(pastebin\.com|paste\.ee|hastebin|ghostbin|termbin\.com|transfer\.sh|0x0\.st|file\.io|temp\.sh|webhook\.site|requestbin|pipedream\.net|hookbin|beeceptor|ngrok(-free)?\.(io|app|dev)|trycloudflare\.com|loca\.lt|serveo\.net|localhost\.run|discord(app)?\.com/api/webhooks|api\.telegram\.org/bot|oast\.(fun|pro|live|site|online|me)|interact\.sh|burpcollaborator\.net)'
+      - field: process.command_line
+        regex: '(\s-d\s|--data|-F\s|--form|--upload-file|-T\s|-Method\s+(Post|Put)|-InFile|-Body\s|/upload|/transfer\s|Invoke-RestMethod|Invoke-WebRequest|\biwr\b|\birm\b|-urlcache)'
+---
+id: ROU-015
+title: MCP server connects to a destination it never contacted before
+severity: medium
+description: >
+  A process inside an MCP server's subtree opened a connection to an address
+  this server had not contacted before (since the sensor started). A server
+  that suddenly reaches a new host may have been compromised or rug-pulled.
+  Loopback connections are included because local relays are a common
+  staging step.
+references:
+  - https://attack.mitre.org/techniques/T1071/001/
+owasp: [ASI02, ASI04]
+mitre: [T1071.001, T1041]
+falsepositives:
+  - Servers that legitimately call many APIs (search, fetch) will fire once per new host; disable or set to observe for those servers.
+detection:
+  type: first_seen
+  where:
+    all:
+      - spawned_by_mcp_server: true
+      - field: kind
+        equals: net.connect
+  by: [lineage.mcp_server]
+  value: net.remote
+---
+id: ROU-020
+title: git push to a URL instead of a configured remote
+severity: high
+description: >
+  An agent tree ran `git push` with an explicit URL rather than a configured
+  remote name. Pushing the repository (or a branch with secrets) to an
+  attacker-controlled remote is a quiet exfiltration path.
+references:
+  - https://attack.mitre.org/techniques/T1567/001/
+owasp: [ASI02]
+mitre: [T1567.001]
+falsepositives:
+  - First push of a brand-new repository done by URL on purpose.
+detection:
+  type: event
+  where:
+    all:
+      - descendant_of_agent: true
+      - field: kind
+        equals: process.start
+      - field: process.command_line
+        regex: 'git(\.exe)?"?\s+(-c\s+\S+\s+)*push\b[^|;&]*\s(https?://|ssh://|git@|git://|file://|\\\\)'
+---
+id: ROU-025
+title: DNS query with tunneling characteristics
+severity: high
+description: >
+  An agent tree resolved a name with a very long or high-entropy subdomain.
+  DNS tunneling encodes data in subdomain labels to slip past egress
+  filtering.
+references:
+  - https://attack.mitre.org/techniques/T1071/004/
+  - https://attack.mitre.org/techniques/T1048/
+owasp: [ASI02]
+mitre: [T1071.004, T1048]
+falsepositives:
+  - Some CDNs and telemetry endpoints use long hashed hostnames.
+detection:
+  type: event
+  where:
+    all:
+      - descendant_of_agent: true
+      - field: kind
+        equals: dns.query
+      - any:
+          - field: dns.longest_label
+            gte: 52
+          - all:
+              - field: dns.longest_label
+                gte: 30
+              - field: dns.subdomain_entropy
+                gte: 3.8
+---
+id: ROU-032
+title: MCP server reads a secret-named file and then connects out
+severity: critical
+description: >
+  A process inside an MCP server's subtree read a file whose name suggests
+  secrets (.env, *secret*, *credential*, *token*) and then opened any
+  network connection within 60 seconds, including to localhost. This is
+  the behaviour of a poisoned tool payload.
+references:
+  - https://attack.mitre.org/techniques/T1041/
+owasp: [ASI02, ASI04]
+mitre: [T1552.001, T1041]
+falsepositives:
+  - A server whose job is to load a .env file and call an API with it.
+response:
+  suspend_tree: true
+detection:
+  type: sequence
+  by: [lineage.mcp_server]
+  within: 60s
+  steps:
+    - name: secret read
+      where:
+        all:
+          - spawned_by_mcp_server: true
+          - field: kind
+            equals: file.read
+          - field: file.path
+            glob: ["*/.env", "*/.env.*", "*secret*", "*credential*", "*token*.json", "*/id_rsa", "*/id_ed25519"]
+    - name: connection
+      where:
+        all:
+          - spawned_by_mcp_server: true
+          - field: kind
+            equals: net.connect
+---
+id: ROU-033
+title: MCP server process reads a secret-named file
+severity: medium
+description: >
+  A process inside an MCP server's subtree read a file whose name suggests
+  secrets. Most tools have no reason to touch such files; review the tool
+  call it is attributed to.
+references:
+  - https://attack.mitre.org/techniques/T1552/001/
+owasp: [ASI02]
+mitre: [T1552.001]
+falsepositives:
+  - Servers configured through a .env file in their own install directory.
+detection:
+  type: event
+  where:
+    all:
+      - spawned_by_mcp_server: true
+      - field: kind
+        equals: file.read
+      - field: file.path
+        glob: ["*/.env", "*/.env.*", "*secret*", "*credential*", "*token*.json"]

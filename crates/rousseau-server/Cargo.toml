@@ -1,0 +1,27 @@
+[package]
+name = "rousseau-server"
+description = "Local dashboard API, WebSocket stream, embedded web UI and alert channels for Rousseau"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[dependencies]
+rousseau-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+axum.workspace = true
+rust-embed.workspace = true
+reqwest.workspace = true
+rustls.workspace = true
+futures-util.workspace = true
+tracing.workspace = true
+thiserror.workspace = true
+getrandom.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

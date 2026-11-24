@@ -1,0 +1,12 @@
+{
+  "theme": "Default",
+  "mcpServers": {
+    "pythonTools": {
+      "command": "C:\\Program Files\\Rousseau\\rousseau.exe",
+      "args": ["wrap", "--name", "pythonTools", "--", "python", "-m", "my_mcp_server", "--port", "8080"],
+      "cwd": "./mcp-servers/python",
+      "timeout": 15000
+    },
+    "httpServer": { "httpUrl": "https://example.com/mcp" }
+  }
+}

@@ -1,0 +1,114 @@
+# Known AI coding agents (Windows).
+#
+# An agent matches a process if ANY of its [[agent.match]] signatures
+# matches. A signature matches when ALL of its specified fields match:
+#
+#   exe       lower-case image file names (any)
+#   path      globs on the full image path (any); `*` crosses separators
+#   not_path  globs that must NOT match the image path
+#   cmdline   globs on the command line (any)
+#   signer    substring of the Authenticode signer subject; only checked
+#             when the sensor could verify the signature
+#
+# Agents are listed most specific first; the first match wins. Users can
+# add entries in their own files (see `agent_files` in rousseau.toml).
+#
+# Executable names and install paths verified against vendor install
+# documentation and a local Claude Code (WinGet) install, November 2026.
+
+[[agent]]
+id = "claude-desktop"
+name = "Claude Desktop"
+transcript = ""
+[[agent.match]]
+exe = ["claude.exe"]
+path = ["*/AnthropicClaude/*", "*/WindowsApps/Claude_*", "*/Programs/Claude/*"]
+signer = "Anthropic"
+
+[[agent]]
+id = "claude-code"
+name = "Claude Code"
+transcript = "claude-code"
+[[agent.match]]
+exe = ["claude.exe"]
+not_path = ["*/AnthropicClaude/*", "*/WindowsApps/Claude_*", "*/Programs/Claude/*"]
+[[agent.match]]
+exe = ["node.exe", "bun.exe"]
+cmdline = ["*@anthropic-ai*claude-code*"]
+
+[[agent]]
+id = "codex-app"
+name = "OpenAI Codex app"
+transcript = "codex"
+[[agent.match]]
+exe = ["codex.exe"]
+path = ["*/WindowsApps/OpenAI.Codex*", "*/Programs/Codex/*", "*/Programs/codex-app/*"]
+
+[[agent]]
+id = "codex-cli"
+name = "OpenAI Codex CLI"
+transcript = "codex"
+[[agent.match]]
+exe = ["codex.exe", "codex-x86_64-pc-windows-msvc.exe", "codex-aarch64-pc-windows-msvc.exe"]
+[[agent.match]]
+exe = ["node.exe", "bun.exe"]
+cmdline = ["*@openai*codex*"]
+
+[[agent]]
+id = "cursor"
+name = "Cursor"
+transcript = ""
+[[agent.match]]
+exe = ["cursor.exe"]
+
+[[agent]]
+id = "windsurf"
+name = "Windsurf"
+transcript = ""
+[[agent.match]]
+exe = ["windsurf.exe"]
+
+[[agent]]
+id = "vscode-copilot"
+name = "VS Code (Copilot agent mode)"
+transcript = ""
+[[agent.match]]
+exe = ["code.exe", "code - insiders.exe"]
+signer = "Microsoft"
+
+[[agent]]
+id = "gemini-cli"
+name = "Gemini CLI"
+transcript = ""
+[[agent.match]]
+exe = ["gemini.exe"]
+[[agent.match]]
+exe = ["node.exe", "bun.exe"]
+cmdline = ["*@google*gemini-cli*"]
+
+[[agent]]
+id = "aider"
+name = "Aider"
+transcript = ""
+[[agent.match]]
+exe = ["aider.exe"]
+[[agent.match]]
+exe = ["python.exe", "pythonw.exe", "py.exe"]
+cmdline = ["*-m aider*", "*/Scripts/aider*", "*aider-chat*"]
+
+[[agent]]
+id = "opencode"
+name = "OpenCode"
+transcript = ""
+[[agent.match]]
+exe = ["opencode.exe"]
+[[agent.match]]
+exe = ["node.exe", "bun.exe"]
+cmdline = ["*opencode-ai*"]
+
+[[agent]]
+id = "goose"
+name = "Goose"
+transcript = ""
+[[agent.match]]
+exe = ["goose.exe"]

@@ -1,0 +1,62 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/rousseau-core",
+    "crates/rousseau-etw",
+    "crates/rousseau-mcp",
+    "crates/rousseau-adapters",
+    "crates/rousseau-server",
+    "crates/rousseau-cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.100"
+license = "Apache-2.0"
+repository = "https://github.com/ide-bloom/rousseau"
+authors = ["Rousseau contributors"]
+
+[workspace.dependencies]
+rousseau-core = { path = "crates/rousseau-core" }
+rousseau-etw = { path = "crates/rousseau-etw" }
+rousseau-mcp = { path = "crates/rousseau-mcp" }
+rousseau-adapters = { path = "crates/rousseau-adapters" }
+rousseau-server = { path = "crates/rousseau-server" }
+
+anyhow = "1.0.105"
+thiserror = "2.0.21"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = { version = "1.0.154", features = ["preserve_order"] }
+serde_yaml = "0.9.34"
+toml = "1.2.2"
+toml_edit = "0.25.20"
+regex = "1.13.2"
+sha2 = "0.11.1"
+unicode-normalization = "0.1.26"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt"] }
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "sync", "time", "io-util", "io-std", "process", "net", "fs", "signal"] }
+futures-util = "0.3.34"
+axum = { version = "0.8.9", features = ["ws"] }
+rust-embed = "8.14.0"
+rusqlite = { version = "0.43.0", features = ["bundled"] }
+clap = { version = "4.6.9", features = ["derive", "env"] }
+reqwest = { version = "0.13.5", default-features = false, features = ["json", "stream", "rustls-no-provider"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12", "logging"] }
+zstd = "0.14.4"
+ferrisetw = "1.2.0"
+windows-service = "0.8.1"
+windows = "0.62.2"
+tempfile = "3.27.0"
+getrandom = "0.4.3"
+
+[profile.dev]
+debug = 0
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = "symbols"
+panic = "abort"

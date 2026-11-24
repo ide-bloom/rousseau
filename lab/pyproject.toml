@@ -1,0 +1,58 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rousseau-lab"
+version = "0.1.0"
+description = "Offline analysis of Rousseau sessions: reports, rule testing, hunting and synthetic data for AI-agent EDR."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "Apache-2.0"
+authors = [{ name = "Rousseau contributors" }]
+keywords = ["security", "edr", "mcp", "ai-agents", "detection-engineering", "incident-response"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Information Technology",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+    "Typing :: Typed",
+]
+dependencies = [
+    "typer>=0.29",
+    "pydantic>=2.14",
+    "pyyaml>=6.0.4",
+    "polars>=2.1",
+    "jinja2>=3.1.6",
+    "rich>=15.0",
+    "zstandard>=0.25",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=9.2", "hypothesis>=6.170", "mypy>=2.4", "ruff>=0.17", "types-PyYAML>=6.0"]
+
+[project.scripts]
+rousseau-lab = "rousseau_lab.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/ide-bloom/rousseau"
+Source = "https://github.com/ide-bloom/rousseau/tree/main/lab"
+Issues = "https://github.com/ide-bloom/rousseau/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rousseau_lab"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/rousseau_lab", "tests", "README.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.mypy]
+strict = true
+python_version = "3.12"
+files = ["src", "tests"]

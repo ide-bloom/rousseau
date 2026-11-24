@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rousseau</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="topbar">
+    <div class="brand"><img src="favicon.svg" alt="" width="20" height="20"><span>Rousseau</span><span id="replay-badge" class="badge badge-info" hidden>replay</span></div>
+    <nav class="tabs" aria-label="Views">
+      <a href="#/timeline" data-view="timeline" title="Live timeline (g t)">Timeline</a>
+      <a href="#/sessions" data-view="sessions" title="Sessions (g s)">Sessions</a>
+      <a href="#/mcp" data-view="mcp" title="MCP inventory (g m)">MCP</a>
+      <a href="#/alerts" data-view="alerts" title="Alerts (g a)">Alerts <span id="alert-count" class="count" hidden></span></a>
+      <a href="#/rules" data-view="rules" title="Rules (g r)">Rules</a>
+      <a href="#/settings" data-view="settings" title="Settings (g ,)">Settings</a>
+    </nav>
+    <div class="status">
+      <span id="mode-pill" class="pill" title="Global response mode">observe</span>
+      <span id="health" class="health" title="Sensor health"><span class="dot"></span><span id="health-text">…</span></span>
+      <span id="live" class="live" title="Live stream">●</span>
+      <button id="theme" class="icon-btn" type="button" title="Toggle light/dark theme (t)" aria-label="Toggle theme">◐</button>
+    </div>
+  </header>
+  <main id="main" tabindex="-1"></main>
+  <aside id="drawer" class="drawer" hidden aria-label="Details">
+    <div class="drawer-head"><h2 id="drawer-title">Details</h2><button id="drawer-close" class="icon-btn" type="button" aria-label="Close (Esc)">✕</button></div>
+    <div id="drawer-body" class="drawer-body"></div>
+  </aside>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <noscript>The Rousseau dashboard needs JavaScript.</noscript>
+</body>
+</html>

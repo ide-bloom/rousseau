@@ -1,0 +1,22 @@
+target-version = "py312"
+line-length = 140
+extend-exclude = ["target", ".venv"]
+
+[lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "N", "A", "C4", "SIM", "RUF", "PTH", "PL", "TRY", "BLE", "RET"]
+ignore = [
+    "PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLR0917", "PLR2004",  # complexity heuristics; logic mirrors the Rust engine
+    "TRY003",   # descriptive exception messages are intended
+    "S101",     # assert is fine for invariants and tests
+    "RUF001",   # intentional Unicode in docstrings/strings (arrows, ellipses)
+    "RUF002",
+    "RUF003",
+]
+
+[lint.per-file-ignores]
+"lab/tests/*" = ["S", "PLC0415"]
+"examples/**/*.py" = ["S310", "S603", "S607", "T201", "PLW1510"]
+"lab/src/rousseau_lab/cli.py" = ["PLC0415", "B008"]
+
+[lint.isort]
+known-first-party = ["rousseau_lab"]

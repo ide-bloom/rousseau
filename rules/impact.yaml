@@ -1,0 +1,86 @@
+# Destructive behaviour in the project directory.
+id: ROU-021
+title: Mass file deletion by an agent tree
+severity: high
+description: >
+  An agent session deleted 100 or more distinct files within 10 seconds.
+  Runaway or manipulated agents have wiped working trees and home
+  directories.
+references:
+  - https://attack.mitre.org/techniques/T1485/
+owasp: [ASI10, ASI08]
+mitre: [T1485, T1070.004]
+falsepositives:
+  - Cleaning build output (node_modules, target/). Consider excluding those paths in a local copy of this rule.
+response:
+  suspend_tree: true
+detection:
+  type: threshold
+  where:
+    all:
+      - descendant_of_agent: true
+      - field: kind
+        equals: file.delete
+      - not:
+          field: file.path
+          glob: ["*/node_modules/*", "*/target/*", "*/.git/objects/*", "*/__pycache__/*", "*/dist/*", "*/AppData/Local/Temp/*"]
+  by: [session]
+  within: 10s
+  count: 100
+  distinct: file.path
+---
+id: ROU-022
+title: Encryption-like write burst
+severity: critical
+description: >
+  An agent session rewrote 200 or more distinct existing files within
+  10 seconds outside build-output folders, the I/O shape of ransomware.
+references:
+  - https://attack.mitre.org/techniques/T1486/
+owasp: [ASI10]
+mitre: [T1486]
+falsepositives:
+  - Mass reformatting (prettier, rustfmt) across a large repository.
+response:
+  suspend_tree: true
+detection:
+  type: threshold
+  where:
+    all:
+      - descendant_of_agent: true
+      - field: kind
+        equals: file.write
+      - not:
+          field: file.path
+          glob: ["*/node_modules/*", "*/target/*", "*/.git/*", "*/__pycache__/*", "*/dist/*", "*/build/*", "*/AppData/Local/Temp/*", "*/.cache/*"]
+  by: [session]
+  within: 10s
+  count: 200
+  distinct: file.path
+---
+id: ROU-023
+title: Files renamed to ransomware-style extensions
+severity: critical
+description: >
+  An agent session renamed 20 or more files to extensions typical of
+  ransomware (.locked, .encrypted, .crypt, …) within 30 seconds.
+references:
+  - https://attack.mitre.org/techniques/T1486/
+owasp: [ASI10]
+mitre: [T1486]
+falsepositives:
+  - None expected.
+response:
+  suspend_tree: true
+detection:
+  type: threshold
+  where:
+    all:
+      - descendant_of_agent: true
+      - field: kind
+        equals: file.rename
+      - field: file.new_path
+        regex: '\.(locked|encrypted|enc|crypt|crypted|crypto|pay|ransom|wncry|cerber|locky)$'
+  by: [session]
+  within: 30s
+  count: 20

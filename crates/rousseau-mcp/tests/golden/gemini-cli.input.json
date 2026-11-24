@@ -1,0 +1,12 @@
+{
+  "theme": "Default",
+  "mcpServers": {
+    "pythonTools": {
+      "command": "python",
+      "args": ["-m", "my_mcp_server", "--port", "8080"],
+      "cwd": "./mcp-servers/python",
+      "timeout": 15000
+    },
+    "httpServer": { "httpUrl": "https://example.com/mcp" }
+  }
+}

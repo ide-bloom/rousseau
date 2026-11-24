@@ -1,0 +1,271 @@
+# Persistence and defence evasion from agent trees.
+id: ROU-008
+title: Agent tree writes a Run or RunOnce autostart value
+severity: high
+description: >
+  A process in an agent tree set a value under a Run, RunOnce or Winlogon
+  autostart key. Programs registered there execute at every logon.
+references:
+  - https://attack.mitre.org/techniques/T1547/001/
+owasp: [ASI10, ASI05]
+mitre: [T1547.001]
+falsepositives:
+  - Installers run by the agent at the user's request.
+detection:
+  type: event
+  where:
+    all:
+      - descendant_of_agent: true
+      - field: kind
+        equals: registry.set
+      - field: registry.key
+        regex: '\\(Software\\(WOW6432Node\\)?Microsoft\\Windows\\CurrentVersion\\(Run|RunOnce|RunOnceEx|RunServices|Policies\\Explorer\\Run)|Software\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon)$'
+---
+id: ROU-009
+title: Agent tree writes to a Startup folder
+severity: high
+description: >
+  A process in an agent tree created or modified a file in a user or
+  all-users Startup folder, which runs at logon.
+references:
+  - https://attack.mitre.org/techniques/T1547/001/
+owasp: [ASI10, ASI05]
+mitre: [T1547.001]
+falsepositives:
+  - Rare; some installers add Startup shortcuts.
+detection:
+  type: event
+  where:
+    all:
+      - descendant_of_agent: true
+      - field: kind
+        in: [file.create, file.write, file.rename]
+      - any:
+          - field: file.path
+            glob: "*/Start Menu/Programs/Startup/*"
+          - field: file.new_path
+            glob: "*/Start Menu/Programs/Startup/*"
+---
+id: ROU-010
+title: Agent tree creates a scheduled task
+severity: high
+description: >
+  A process in an agent tree created a scheduled task (schtasks /create,
+  Register-ScheduledTask, or a new task file under System32\Tasks).
+references:
+  - https://attack.mitre.org/techniques/T1053/005/
+owasp: [ASI10, ASI05]
+mitre: [T1053.005]
+falsepositives:
+  - Asking the agent to automate a recurring build or backup.
+detection:
+  type: event
+  where:
+    all:
+      - descendant_of_agent: true
+      - any:
+          - all:
+              - field: kind
+                equals: process.start
+              - field: process.command_line
+                regex: '(schtasks(\.exe)?"?\s+.*/create|Register-ScheduledTask|New-ScheduledTask)'
+          - all:
+              - field: kind
+                in: [file.create, file.write]
+              - field: file.path
+                glob: "*/Windows/System32/Tasks/*"
+---
+id: ROU-011
+title: Agent tree creates or modifies a Windows service
+severity: high
+description: >
+  A process in an agent tree created a service (sc create, New-Service) or
+  wrote a service ImagePath. Services run with high privileges and survive
+  reboots.
+references:
+  - https://attack.mitre.org/techniques/T1543/003/
+owasp: [ASI10, ASI03]
+mitre: [T1543.003]
+falsepositives:
+  - Installing a development database or agent as a service on request.
+detection:
+  type: event
+  where:
+    all:
+      - descendant_of_agent: true
+      - any:
+          - all:
+              - field: kind
+                equals: process.start
+              - field: process.command_line
+                regex: '(\bsc(\.exe)?"?\s+(\\\\\S+\s+)?(create|config)\b|New-Service|Set-Service\s+.*-StartupType)'
+          - all:
+              - field: kind
+                equals: registry.set
+              - field: registry.key
+                regex: '^HKLM\\SYSTEM\\(CurrentControlSet|ControlSet\d+)\\Services\\[^\\]+$'
+              - field: registry.value
+                in: [ImagePath, ServiceDll]
+---
+id: ROU-012
+title: Agent tree sets up a WMI event subscription
+severity: critical
+description: >
+  A process in an agent tree created WMI event filters or consumers, a
+  stealthy persistence mechanism that runs code when an event fires.
+references:
+  - https://attack.mitre.org/techniques/T1546/003/
+owasp: [ASI10]
+mitre: [T1546.003]
+falsepositives:
+  - Essentially none in developer workflows.
+detection:
+  type: event
+  where:
+    all:
+      - descendant_of_agent: true
+      - field: kind
+        equals: process.start
+      - field: process.command_line
+        regex: '(__EventFilter|__FilterToConsumerBinding|CommandLineEventConsumer|ActiveScriptEventConsumer|Register-WmiEvent|Register-CimIndicationEvent|mofcomp(\.exe)?)'
+---
+id: ROU-019
+title: Agent tree tampers with Microsoft Defender
+severity: critical
+description: >
+  A process in an agent tree tried to change Defender settings or add
+  exclusions, via PowerShell (Set-MpPreference, Add-MpPreference), the
+  command line tool, or the Defender registry keys.
+references:
+  - https://attack.mitre.org/techniques/T1562/001/
+owasp: [ASI10]
+mitre: [T1562.001]
+falsepositives:
+  - Adding a build-output exclusion on explicit request; still worth a human look.
+response:
+  suspend_tree: true
+detection:
+  type: event
+  where:
+    all:
+      - descendant_of_agent: true
+      - any:
+          - all:
+              - field: kind
+                equals: process.start
+              - field: process.command_line
+                regex: '(Set-MpPreference|Add-MpPreference|Remove-MpPreference|MpCmdRun(\.exe)?"?\s+.*-RemoveDefinitions|DisableRealtimeMonitoring|ExclusionPath|ExclusionProcess|ExclusionExtension)'
+          - all:
+              - field: kind
+                in: [registry.set, registry.delete]
+              - field: registry.key
+                contains: '\Windows Defender\'
+---
+id: ROU-018
+title: Encoded PowerShell launched from an agent tree
+severity: high
+description: >
+  An agent tree launched PowerShell with -EncodedCommand (or an
+  abbreviation). Encoding hides the real command from the user reviewing the
+  agent's actions and from naive logging.
+references:
+  - https://attack.mitre.org/techniques/T1059/001/
+  - https://attack.mitre.org/techniques/T1027/010/
+owasp: [ASI05]
+mitre: [T1059.001, T1027.010]
+falsepositives:
+  - Some tools pass complex scripts encoded to avoid quoting issues.
+detection:
+  type: event
+  where:
+    all:
+      - descendant_of_agent: true
+      - field: kind
+        equals: process.start
+      - field: process.name
+        in: [powershell.exe, pwsh.exe, powershell_ise.exe]
+      - field: process.command_line
+        regex: '\s[-/]e(c|nc|nco|ncod|ncode|ncoded|ncodedc|ncodedco|ncodedcom|ncodedcomm|ncodedcomma|ncodedcomman|ncodedcommand)?\s+[A-Za-z0-9+/=]{16,}'
+---
+id: ROU-024
+title: Executable dropped in TEMP then executed
+severity: high
+description: >
+  Within one agent tree, an executable or script was written under a TEMP
+  directory and a process was then started from TEMP within two minutes:
+  the download-and-run pattern of droppers.
+references:
+  - https://attack.mitre.org/techniques/T1105/
+  - https://attack.mitre.org/techniques/T1204/002/
+owasp: [ASI05]
+mitre: [T1105, T1204.002]
+falsepositives:
+  - Installers and some build tools unpack helpers into TEMP.
+detection:
+  type: sequence
+  by: [lineage.root]
+  within: 120s
+  steps:
+    - name: drop
+      where:
+        all:
+          - descendant_of_agent: true
+          - field: kind
+            in: [file.create, file.write]
+          - field: file.path
+            glob: ["*/AppData/Local/Temp/*", "*/Windows/Temp/*"]
+          - field: file.ext
+            in: [exe, dll, scr, ps1, bat, cmd, vbs, js, msi, hta]
+    - name: execute
+      where:
+        all:
+          - descendant_of_agent: true
+          - field: kind
+            equals: process.start
+          - field: process.image
+            glob: ["*/AppData/Local/Temp/*", "*/Windows/Temp/*"]
+---
+id: ROU-034
+title: Living-off-the-land binary used for download or proxy execution
+severity: high
+description: >
+  An agent tree used a Windows binary commonly abused to download files or
+  proxy code execution (certutil -urlcache, mshta, regsvr32 /i:http,
+  rundll32 javascript:, bitsadmin /transfer).
+references:
+  - https://attack.mitre.org/techniques/T1218/
+  - https://attack.mitre.org/techniques/T1105/
+owasp: [ASI05]
+mitre: [T1218, T1105]
+falsepositives:
+  - certutil used to hash files (-hashfile) does not match.
+detection:
+  type: event
+  where:
+    all:
+      - descendant_of_agent: true
+      - field: kind
+        equals: process.start
+      - any:
+          - all:
+              - field: process.name
+                equals: certutil.exe
+              - field: process.command_line
+                regex: '(-urlcache|-verifyctl|-decode\b)'
+          - field: process.name
+            in: [mshta.exe]
+          - all:
+              - field: process.name
+                equals: regsvr32.exe
+              - field: process.command_line
+                regex: '/i:\s*https?:'
+          - all:
+              - field: process.name
+                equals: rundll32.exe
+              - field: process.command_line
+                regex: '(javascript:|vbscript:|url\.dll,.*FileProtocolHandler)'
+          - all:
+              - field: process.name
+                equals: bitsadmin.exe
+              - field: process.command_line
+                contains: /transfer

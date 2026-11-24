@@ -1,0 +1,5 @@
+{
+  "mcpServers": {
+    "repoTools": { "command": "node", "args": ["scripts/mcp.js"] }
+  }
+}

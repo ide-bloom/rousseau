@@ -1,0 +1,5 @@
+{
+  "mcpServers": {
+    "local": { "command": "C:\\Program Files\\Rousseau\\rousseau.exe", "args": ["wrap", "--name", "local", "--", "python", "-m", "project_mcp"] }
+  }
+}

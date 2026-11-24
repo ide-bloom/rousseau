@@ -1,0 +1,13 @@
+{
+  "scenario": "poisoned-server",
+  "mode": "enforce",
+  "description": "Incidents the poisoned-server scenario must produce. `requires_etw` incidents need the ETW sensor (elevated `rousseau run` or the service).",
+  "incidents": [
+    { "rule": "ROU-017", "title": "Hidden Unicode in MCP tool metadata or results", "requires_etw": false, "server": "poisoned-weather" },
+    { "rule": "ROU-016", "title": "MCP tool definition drifted after approval", "requires_etw": false, "server": "poisoned-weather" },
+    { "rule": "ROU-031", "title": "MCP tool call blocked by Rousseau", "requires_etw": false, "server": "poisoned-weather" },
+    { "rule": "ROU-033", "title": "MCP server process reads a secret-named file", "requires_etw": true, "server": "poisoned-weather", "attributed_to_tool": "get_forecast" },
+    { "rule": "ROU-015", "title": "MCP server connects to a destination it never contacted before", "requires_etw": true, "server": "poisoned-weather", "attributed_to_tool": "get_forecast" },
+    { "rule": "ROU-032", "title": "MCP server reads a secret-named file and then connects out", "requires_etw": true, "server": "poisoned-weather" }
+  ]
+}

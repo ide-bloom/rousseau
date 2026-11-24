@@ -1,0 +1,197 @@
+# MCP-layer detections built on proxy events and inspector findings.
+id: ROU-016
+title: MCP tool definition drifted after approval
+severity: high
+description: >
+  A tool's definition (name, description, input schema or annotations)
+  changed after it was pinned, or tools were added or removed. Changing a
+  tool after the user approved it is a rug pull. In enforce mode calls to
+  the changed tool are blocked until re-approved.
+references:
+  - https://owasp.org/www-project-mcp-top-10/
+  - https://attack.mitre.org/techniques/T1195/002/
+owasp: [ASI04]
+mitre: [T1195.002]
+falsepositives:
+  - Legitimate server upgrades change descriptions; review the diff and approve.
+detection:
+  type: event
+  where:
+    field: kind
+    equals: mcp.drift
+---
+id: ROU-017
+title: Hidden Unicode in MCP tool metadata or results
+severity: critical
+description: >
+  An inspector found invisible characters (Unicode Tags, zero-width,
+  bidirectional controls or variation-selector smuggling) in a tool
+  description, schema, argument or result. Hidden text is read by the model
+  but not by the human: the standard carrier for tool poisoning.
+references:
+  - https://owasp.org/www-project-mcp-top-10/
+  - https://attack.mitre.org/techniques/T1027/
+owasp: [ASI01, ASI06]
+mitre: [T1027]
+falsepositives:
+  - Emoji with a single U+FE0F variation selector are not flagged; RTL-language text may contain legitimate bidi marks.
+detection:
+  type: event
+  where:
+    all:
+      - field: kind
+        equals: mcp.finding
+      - field: finding.inspector
+        equals: unicode
+---
+id: ROU-026
+title: Instruction-like content in MCP tool metadata or results
+severity: high
+description: >
+  A tool description, schema or result contains text that addresses the
+  model with instructions: "ignore previous instructions", <IMPORTANT>
+  blocks, "do not tell the user", or directions to read credential files.
+references:
+  - https://owasp.org/www-project-mcp-top-10/
+owasp: [ASI01, ASI06]
+mitre: [T1204]
+falsepositives:
+  - 'Tool descriptions that legitimately use emphatic wording ("IMPORTANT: the path must be absolute").'
+detection:
+  type: event
+  where:
+    all:
+      - field: kind
+        equals: mcp.finding
+      - field: finding.inspector
+        equals: instructions
+      - field: finding.severity
+        in: [medium, high, critical]
+---
+id: ROU-027
+title: Secret in MCP tool arguments or results
+severity: high
+description: >
+  A token, key or credential (matched by prefix, format, checksum or
+  entropy) appeared in a tool call's arguments or results. Secrets flowing
+  through tools can leak to the model provider or a malicious server.
+references:
+  - https://attack.mitre.org/techniques/T1552/
+owasp: [ASI03]
+mitre: [T1552]
+falsepositives:
+  - Test fixtures and documentation examples with realistic-looking keys.
+detection:
+  type: event
+  where:
+    all:
+      - field: kind
+        equals: mcp.finding
+      - field: finding.inspector
+        equals: secrets
+---
+id: ROU-028
+title: Exfiltration-shaped URL in MCP traffic
+severity: medium
+description: >
+  A tool description, argument or result contains a URL on a webhook relay,
+  paste site, tunneling service, Discord webhook or a raw IP address.
+references:
+  - https://attack.mitre.org/techniques/T1567/
+owasp: [ASI02]
+mitre: [T1567]
+falsepositives:
+  - Tools that integrate with webhooks by design.
+detection:
+  type: event
+  where:
+    all:
+      - field: kind
+        equals: mcp.finding
+      - field: finding.inspector
+        equals: urls
+---
+id: ROU-029
+title: Dangerous argument pattern in an MCP tool call
+severity: high
+description: >
+  A tool call's arguments contain option-injection or command-injection
+  patterns for shell- or git-like tools (-c core.sshCommand, --upload-pack,
+  encoded PowerShell, ext:: remotes, command substitution).
+references:
+  - https://attack.mitre.org/techniques/T1059/
+owasp: [ASI05, ASI02]
+mitre: [T1059]
+falsepositives:
+  - Shell tools that legitimately receive complex commands.
+detection:
+  type: event
+  where:
+    all:
+      - field: kind
+        equals: mcp.finding
+      - field: finding.inspector
+        equals: args
+---
+id: ROU-030
+title: MCP tool shadowing across servers
+severity: high
+description: >
+  Two different MCP servers expose tools with the same name or names that
+  are visually confusable (Unicode skeleton match). A malicious server can
+  shadow a trusted tool to intercept calls.
+references:
+  - https://owasp.org/www-project-mcp-top-10/
+  - https://attack.mitre.org/techniques/T1036/
+owasp: [ASI04]
+mitre: [T1036]
+falsepositives:
+  - Two legitimate servers both offering a generic name such as `search`.
+detection:
+  type: event
+  where:
+    all:
+      - field: kind
+        equals: mcp.finding
+      - field: finding.inspector
+        equals: shadowing
+---
+id: ROU-031
+title: MCP tool call blocked by Rousseau
+severity: medium
+description: >
+  Rousseau blocked a tool call in enforce mode (drifted or unapproved tool,
+  or high-severity argument finding). The incident records what was
+  attempted.
+references:
+  - https://owasp.org/www-project-mcp-top-10/
+owasp: [ASI02, ASI04]
+mitre: [T1195.002]
+falsepositives:
+  - Calls to tools whose upgrade has not been approved yet.
+detection:
+  type: event
+  where:
+    field: kind
+    equals: mcp.blocked
+---
+id: ROU-035
+title: Possible prompt injection flagged by the on-device classifier
+severity: high
+description: >
+  The optional on-device prompt-injection classifier (built with the `ml`
+  feature) scored a tool description or result above its threshold.
+references:
+  - https://owasp.org/www-project-mcp-top-10/
+owasp: [ASI01]
+mitre: [T1204]
+falsepositives:
+  - Classifier false positives on security documentation or test data.
+detection:
+  type: event
+  where:
+    all:
+      - field: kind
+        equals: mcp.finding
+      - field: finding.inspector
+        equals: classifier

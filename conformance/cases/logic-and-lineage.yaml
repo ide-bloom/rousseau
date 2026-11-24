@@ -1,0 +1,148 @@
+# Boolean composition, lineage predicates, disabled rules and invalid rules.
+name: all, any and not nest
+rule:
+  id: C-011
+  title: tree
+  severity: low
+  detection:
+    where:
+      all:
+        - {field: kind, equals: file.read}
+        - any:
+            - {field: file.ext, equals: env}
+            - {field: file.path, contains: secret}
+        - not: {field: process.name, in: [git.exe]}
+events:
+  - {id: 1, ts: 1, kind: file.read, file: {path: 'a\.env', ext: env}, process: {name: node.exe}}
+  - {id: 2, ts: 2, kind: file.read, file: {path: 'a\.env', ext: env}, process: {name: git.exe}}
+  - {id: 3, ts: 3, kind: file.write, file: {path: 'secret.txt'}}
+  - {id: 4, ts: 4, kind: file.read, file: {path: 'my-secret.txt', ext: txt}}
+expected:
+  - {events: [1]}
+  - {events: [4]}
+---
+name: descendant_of_agent and spawned_by_mcp_server (boolean and named)
+rule:
+  id: C-012
+  title: lineage
+  severity: low
+  detection:
+    where:
+      any:
+        - all:
+            - {descendant_of_agent: true}
+            - {spawned_by_mcp_server: Files}
+        - all:
+            - {descendant_of_agent: false}
+            - {field: kind, equals: special}
+events:
+  - {id: 1, ts: 1, kind: x, lineage: {agent: claude-code, mcp_server: files}}
+  - {id: 2, ts: 2, kind: x, lineage: {agent: claude-code, mcp_server: other}}
+  - {id: 3, ts: 3, kind: x, lineage: {agent: claude-code}}
+  - {id: 4, ts: 4, kind: special}
+  - {id: 5, ts: 5, kind: special, lineage: {agent: codex-cli}}
+expected:
+  - {events: [1]}
+  - {events: [4]}
+---
+name: spawned_by_mcp_server false means outside every server subtree
+rule:
+  id: C-013
+  title: not mcp
+  severity: low
+  detection:
+    where:
+      all:
+        - {descendant_of_agent: true}
+        - {spawned_by_mcp_server: false}
+events:
+  - {id: 1, ts: 1, kind: x, lineage: {agent: a}}
+  - {id: 2, ts: 2, kind: x, lineage: {agent: a, mcp_server: s}}
+expected:
+  - {events: [1]}
+---
+name: disabled rules never match
+rule:
+  id: C-020
+  title: disabled
+  severity: low
+  enabled: false
+  detection:
+    where: {field: kind, exists: true}
+events:
+  - {id: 1, ts: 1, kind: x}
+expected: []
+---
+name: a predicate with two operators is rejected
+invalid: true
+rule:
+  id: C-022
+  title: bad
+  severity: low
+  detection:
+    where: {field: a, equals: 1, contains: x}
+events: []
+expected: []
+---
+name: unknown top-level keys are rejected
+invalid: true
+rule:
+  id: C-023
+  title: bad
+  severity: low
+  colour: blue
+  detection:
+    where: {field: a, exists: true}
+events: []
+expected: []
+---
+name: sequences need a valid duration
+invalid: true
+rule:
+  id: C-024
+  title: bad
+  severity: low
+  detection:
+    type: sequence
+    within: 1.5s
+    steps:
+      - where: {field: a, exists: true}
+      - where: {field: b, exists: true}
+events: []
+expected: []
+---
+name: severity must be one of info, low, medium, high, critical
+invalid: true
+rule:
+  id: C-025
+  title: bad
+  severity: severe
+  detection:
+    where: {field: a, exists: true}
+events: []
+expected: []
+---
+name: an empty all list is rejected
+invalid: true
+rule:
+  id: C-026
+  title: bad
+  severity: low
+  detection:
+    where: {all: []}
+events: []
+expected: []
+---
+name: sequences with a single step are rejected
+invalid: true
+rule:
+  id: C-027
+  title: bad
+  severity: low
+  detection:
+    type: sequence
+    within: 5s
+    steps:
+      - where: {field: a, exists: true}
+events: []
+expected: []

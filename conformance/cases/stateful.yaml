@@ -1,0 +1,135 @@
+# Sequence, threshold and first_seen semantics.
+name: sequence matches in order per group within the window (inclusive)
+rule:
+  id: C-014
+  title: seq
+  severity: high
+  detection:
+    type: sequence
+    by: [lineage.root]
+    within: 60s
+    steps:
+      - where: {field: kind, equals: file.read}
+      - where: {field: kind, equals: net.connect}
+events:
+  - {id: 1, ts: 0, kind: net.connect, lineage: {root: a}}
+  - {id: 2, ts: 1000, kind: file.read, lineage: {root: a}}
+  - {id: 3, ts: 2000, kind: net.connect, lineage: {root: b}}
+  - {id: 4, ts: 61000, kind: net.connect, lineage: {root: a}}
+  - {id: 5, ts: 62000, kind: net.connect, lineage: {root: a}}
+  - {id: 6, ts: 100000, kind: file.read, lineage: {root: a}}
+  - {id: 7, ts: 160001, kind: net.connect, lineage: {root: a}}
+expected:
+  - {events: [2, 4]}
+---
+name: the oldest chain completes first and clears the group; the completing event starts nothing
+rule:
+  id: C-015
+  title: seq oldest
+  severity: high
+  detection:
+    type: sequence
+    by: [g]
+    within: 10s
+    steps:
+      - where: {field: kind, equals: a}
+      - where: {field: kind, in: [a, b]}
+events:
+  - {id: 1, ts: 0, kind: a, g: x}
+  - {id: 2, ts: 1, kind: a, g: x}
+  - {id: 3, ts: 2, kind: a, g: x}
+  - {id: 4, ts: 3, kind: b, g: x}
+  - {id: 5, ts: 4, kind: a, g: x}
+  - {id: 6, ts: 5, kind: b, g: x}
+expected:
+  - {events: [1, 2]}
+  - {events: [3, 4]}
+  - {events: [5, 6]}
+---
+name: three-step sequence with noise; a missing group field groups under the empty key
+rule:
+  id: C-016
+  title: seq3
+  severity: high
+  detection:
+    type: sequence
+    by: [session]
+    within: 5s
+    steps:
+      - where: {field: kind, equals: download}
+      - where: {field: kind, equals: write}
+      - where: {field: kind, equals: exec}
+events:
+  - {id: 1, ts: 0, kind: download}
+  - {id: 2, ts: 1, kind: noise}
+  - {id: 3, ts: 2, kind: write}
+  - {id: 4, ts: 3, kind: exec, session: s}
+  - {id: 5, ts: 4, kind: exec}
+  - {id: 6, ts: 10, kind: download}
+  - {id: 7, ts: 11, kind: write}
+  - {id: 8, ts: 6000, kind: exec}
+expected:
+  - {events: [1, 3, 5]}
+---
+name: threshold counts within a sliding window and clears after firing
+rule:
+  id: C-017
+  title: threshold
+  severity: high
+  detection:
+    type: threshold
+    where: {field: kind, equals: file.delete}
+    by: [session]
+    within: 10s
+    count: 3
+events:
+  - {id: 1, ts: 0, kind: file.delete, session: s}
+  - {id: 2, ts: 1000, kind: file.delete, session: s}
+  - {id: 3, ts: 1500, kind: file.delete, session: t}
+  - {id: 4, ts: 20000, kind: file.delete, session: s}
+  - {id: 5, ts: 21000, kind: file.delete, session: s}
+  - {id: 6, ts: 30000, kind: file.delete, session: s}
+  - {id: 7, ts: 30001, kind: file.delete, session: s}
+expected:
+  - {events: [4, 5, 6]}
+---
+name: threshold distinct counts unique values case-insensitively; events lacking the field are ignored
+rule:
+  id: C-018
+  title: distinct
+  severity: high
+  detection:
+    type: threshold
+    where: {field: kind, equals: file.write}
+    within: 1m
+    count: 3
+    distinct: file.path
+events:
+  - {id: 1, ts: 0, kind: file.write, file: {path: A}}
+  - {id: 2, ts: 1, kind: file.write, file: {path: a}}
+  - {id: 3, ts: 2, kind: file.write}
+  - {id: 4, ts: 3, kind: file.write, file: {path: b}}
+  - {id: 5, ts: 4, kind: file.write, file: {path: c}}
+expected:
+  - {events: [1, 2, 4, 5]}
+---
+name: first_seen fires once per new value per group
+rule:
+  id: C-019
+  title: first seen
+  severity: medium
+  detection:
+    type: first_seen
+    where: {field: kind, equals: net.connect}
+    by: [lineage.mcp_server]
+    value: net.remote
+events:
+  - {id: 1, ts: 1, kind: net.connect, lineage: {mcp_server: a}, net: {remote: '1.2.3.4:443'}}
+  - {id: 2, ts: 2, kind: net.connect, lineage: {mcp_server: a}, net: {remote: '1.2.3.4:443'}}
+  - {id: 3, ts: 3, kind: net.connect, lineage: {mcp_server: b}, net: {remote: '1.2.3.4:443'}}
+  - {id: 4, ts: 4, kind: net.connect, lineage: {mcp_server: a}}
+  - {id: 5, ts: 5, kind: net.connect, lineage: {mcp_server: a}, net: {remote: '5.6.7.8:80'}}
+expected:
+  - {events: [1]}
+  - {events: [3]}
+  - {events: [5]}

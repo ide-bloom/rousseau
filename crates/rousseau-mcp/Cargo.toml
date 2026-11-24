@@ -1,0 +1,37 @@
+[package]
+name = "rousseau-mcp"
+description = "MCP stdio and Streamable HTTP proxy, tool pinning, inspectors and client-config adapters for Rousseau"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[dependencies]
+rousseau-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+toml_edit.workspace = true
+regex.workspace = true
+sha2.workspace = true
+unicode-normalization.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+tokio.workspace = true
+axum.workspace = true
+reqwest.workspace = true
+rustls.workspace = true
+futures-util.workspace = true
+ort = { version = "=2.0.0-rc.15", default-features = false, features = ["std", "load-dynamic", "api-20"], optional = true }
+tokenizers = { version = "0.22.2", default-features = false, features = ["fancy-regex"], optional = true }
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[features]
+# On-device prompt-injection classifier (ONNX Runtime, loaded dynamically).
+# See inspect::classifier.
+ml = ["dep:ort", "dep:tokenizers"]

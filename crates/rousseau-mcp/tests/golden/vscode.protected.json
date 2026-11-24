@@ -1,0 +1,14 @@
+{
+  // User-level MCP servers
+  "inputs": [
+    { "type": "promptString", "id": "token", "description": "API token", "password": true }
+  ],
+  "servers": {
+    "memory": {
+      "type": "stdio",
+      "command": "C:\\Program Files\\Rousseau\\rousseau.exe",
+      "args": ["wrap", "--name", "memory", "--", "npx", "-y", "@modelcontextprotocol/server-memory"],
+    },
+    "remote": { "type": "http", "url": "https://api.example.com/mcp" },
+  },
+}

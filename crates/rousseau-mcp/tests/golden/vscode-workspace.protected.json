@@ -1,0 +1,6 @@
+{
+  /* Workspace servers */
+  "servers": {
+    "fetch": { "command": "C:\\Program Files\\Rousseau\\rousseau.exe", "args": ["wrap", "--name", "fetch", "--", "uvx", "mcp-server-fetch"] }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "git": {
+      "command": "uvx",
+      "args": ["mcp-server-git", "--repository", "C:\\dev\\app"]
+    },
+    "remote-docs": {
+      "url": "https://docs.example.com/mcp"
+    }
+  }
+}
